@@ -1,0 +1,11 @@
+.git
+.venv
+__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+.coverage
+build
+dist
+tests
+modeldata/model.joblib
