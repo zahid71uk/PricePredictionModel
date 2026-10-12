@@ -15,6 +15,16 @@ class HouseFeatures(BaseModel):
     school_rating: float = Field(ge=0, le=10)
 
 
+class DatasetHouse(HouseFeatures):
+    id: int = Field(ge=1)
+    price: float = Field(gt=0)
+
+
+class DatasetResponse(BaseModel):
+    houses: list[DatasetHouse]
+    count: int
+
+
 class PredictionResponse(BaseModel):
     predicted_price: float
 

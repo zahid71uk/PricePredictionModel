@@ -53,6 +53,7 @@ The image installs the application, trains the model from the bundled training C
 | Method | Path | Description |
 | --- | --- | --- |
 | GET | `/health` | Service and model availability |
+| GET | `/api/v1/dataset/houses` | Typed source rows for downstream analysis |
 | POST | `/predict` | Predict one house price |
 | POST | `/predict/batch` | Predict up to 100 houses |
 | GET | `/model/coefficients` | Linear model intercept and feature coefficients |
@@ -73,6 +74,8 @@ Example single prediction:
 ```
 
 Batch requests use `{"houses": [{...}, {...}]}` and return an ordered `predictions` list with its `count`.
+
+The dataset endpoint returns `{"houses": [...], "count": n}` with the source CSV's `id`, seven model features, and `price`. It does not require the trained model artifact. Invalid, missing, or empty source data returns HTTP 503.
 
 ## Tests
 

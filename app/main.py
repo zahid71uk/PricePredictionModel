@@ -6,9 +6,9 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.config import MODEL_ARTIFACT_PATH
+from app.config import DATA_FILE, MODEL_ARTIFACT_PATH
 from app.model_service import ModelNotFoundError, ModelService
-from app.routers import health, model_info, prediction
+from app.routers import dataset, health, model_info, prediction
 from app.schemas import BatchPredictionRequest, HouseFeatures
 
 logger = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ def _format_error_location(location: tuple) -> str:
     return ".".join(parts) or "request body"
 
 
-def create_app(model_path=MODEL_ARTIFACT_PATH) -> FastAPI:
+def create_app(model_path=MODEL_ARTIFACT_PATH, dataset_path=DATA_FILE) -> FastAPI:
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         try:
@@ -84,6 +84,7 @@ def create_app(model_path=MODEL_ARTIFACT_PATH) -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
+    application.state.dataset_path = dataset_path
 
     @application.exception_handler(RequestValidationError)
     async def validation_exception_handler(
@@ -115,6 +116,7 @@ def create_app(model_path=MODEL_ARTIFACT_PATH) -> FastAPI:
         )
 
     application.include_router(health.router)
+    application.include_router(dataset.router)
     application.include_router(prediction.router)
     application.include_router(model_info.router)
     return application
