@@ -20,7 +20,9 @@ py -3.14 -m uvicorn app.main:app --reload
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-### If the above command does not work try this Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass .\.venv\Scripts\Activate.ps1
+### If the above command does not work try this first  
+### Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+### .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 ```
 
