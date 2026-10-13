@@ -13,7 +13,6 @@ COPY app ./app
 COPY modeldata/house_price_dataset.csv modeldata/test_data_for_prediction.csv ./modeldata/
 
 RUN python -m pip install --no-cache-dir . \
-    && python -m app.training \
     && chown -R app:app /app
 
 USER app
