@@ -1,4 +1,6 @@
 import logging
+import os
+import threading
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
@@ -6,9 +8,17 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.config import DATA_FILE, MODEL_ARTIFACT_PATH
+from app.config import (
+    DATASET_UPLOAD_ENABLED,
+    DATASET_UPLOAD_TOKEN,
+    DATA_FILE,
+    MARKET_ANALYSIS_API_URL,
+    MARKET_ANALYSIS_CACHE_INVALIDATION_TOKEN,
+    MAX_DATASET_UPLOAD_BYTES,
+    MODEL_ARTIFACT_PATH,
+)
 from app.model_service import ModelNotFoundError, ModelService
-from app.routers import dataset, health, model_info, prediction
+from app.routers import dataset, health, model_info, prediction, training
 from app.schemas import BatchPredictionRequest, HouseFeatures
 
 logger = logging.getLogger(__name__)
@@ -66,7 +76,16 @@ def _format_error_location(location: tuple) -> str:
     return ".".join(parts) or "request body"
 
 
-def create_app(model_path=MODEL_ARTIFACT_PATH, dataset_path=DATA_FILE) -> FastAPI:
+def create_app(
+    model_path=MODEL_ARTIFACT_PATH,
+    dataset_path=DATA_FILE,
+    *,
+    dataset_upload_enabled: bool | None = None,
+    dataset_upload_token: str | None = None,
+    market_analysis_api_url: str | None = None,
+    market_analysis_cache_invalidation_token: str | None = None,
+    max_dataset_upload_bytes: int = MAX_DATASET_UPLOAD_BYTES,
+) -> FastAPI:
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         try:
@@ -85,6 +104,24 @@ def create_app(model_path=MODEL_ARTIFACT_PATH, dataset_path=DATA_FILE) -> FastAP
         lifespan=lifespan,
     )
     application.state.dataset_path = dataset_path
+    application.state.model_path = model_path
+    application.state.dataset_lock = threading.RLock()
+    application.state.training_lock = threading.Lock()
+    application.state.dataset_upload_enabled = (
+        DATASET_UPLOAD_ENABLED if dataset_upload_enabled is None else dataset_upload_enabled
+    )
+    application.state.dataset_upload_token = (
+        DATASET_UPLOAD_TOKEN if dataset_upload_token is None else dataset_upload_token
+    )
+    application.state.market_analysis_api_url = (
+        MARKET_ANALYSIS_API_URL if market_analysis_api_url is None else market_analysis_api_url.rstrip("/")
+    )
+    application.state.market_analysis_cache_invalidation_token = (
+        MARKET_ANALYSIS_CACHE_INVALIDATION_TOKEN
+        if market_analysis_cache_invalidation_token is None
+        else market_analysis_cache_invalidation_token
+    )
+    application.state.max_dataset_upload_bytes = max_dataset_upload_bytes
 
     @application.exception_handler(RequestValidationError)
     async def validation_exception_handler(
@@ -119,6 +156,7 @@ def create_app(model_path=MODEL_ARTIFACT_PATH, dataset_path=DATA_FILE) -> FastAP
     application.include_router(dataset.router)
     application.include_router(prediction.router)
     application.include_router(model_info.router)
+    application.include_router(training.router)
     return application
 
 

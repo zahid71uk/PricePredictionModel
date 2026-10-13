@@ -15,7 +15,8 @@ router = APIRouter(tags=["dataset"])
 def get_dataset(request: Request) -> DatasetResponse:
     data_path = request.app.state.dataset_path
     try:
-        data = pd.read_csv(data_path)
+        with request.app.state.dataset_lock:
+            data = pd.read_csv(data_path)
         required_columns = {"id", *FEATURE_COLUMNS, TARGET_COLUMN}
         missing_columns = required_columns.difference(data.columns)
         if missing_columns or data.empty:

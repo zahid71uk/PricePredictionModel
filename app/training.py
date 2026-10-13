@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 import joblib
 import pandas as pd
+from pydantic import ValidationError
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
@@ -15,8 +16,28 @@ from app.config import (
     TARGET_COLUMN,
     TEST_SIZE,
 )
+from app.schemas import DatasetHouse
 
 logger = logging.getLogger(__name__)
+
+
+def _load_training_data(data_path) -> pd.DataFrame:
+    data = pd.read_csv(data_path)
+    expected_columns = ["id", *FEATURE_COLUMNS, TARGET_COLUMN]
+    missing_columns = set(expected_columns).difference(data.columns)
+    if missing_columns:
+        raise ValueError(f"Training data is missing columns: {sorted(missing_columns)}")
+    if len(data) < 6:
+        raise ValueError("Training data must contain at least 6 rows.")
+    if not data["id"].is_unique:
+        raise ValueError("Training data must contain unique row IDs.")
+
+    try:
+        for row in data[expected_columns].to_dict(orient="records"):
+            DatasetHouse.model_validate(row)
+    except ValidationError as error:
+        raise ValueError("Training data contains invalid rows.") from error
+    return data
 
 
 def train_model(
@@ -24,13 +45,7 @@ def train_model(
     artifact_path=MODEL_ARTIFACT_PATH,
 ) -> dict:
     """Train and persist a linear regression model and its evaluation metadata."""
-    data = pd.read_csv(data_path)
-    expected_columns = set(FEATURE_COLUMNS + [TARGET_COLUMN])
-    missing_columns = expected_columns.difference(data.columns)
-    if missing_columns:
-        raise ValueError(f"Training data is missing columns: {sorted(missing_columns)}")
-    if data.empty:
-        raise ValueError("Training data must contain at least one row.")
+    data = _load_training_data(data_path)
 
     features = data[FEATURE_COLUMNS]
     target = data[TARGET_COLUMN]

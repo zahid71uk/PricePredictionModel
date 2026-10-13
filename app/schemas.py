@@ -52,6 +52,13 @@ class MetricsResponse(BaseModel):
     trained_at: str
 
 
+class DatasetTrainingResponse(BaseModel):
+    dataset_count: int
+    metrics: MetricsResponse
+    market_analysis_cache_refreshed: bool
+    message: str
+
+
 class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
