@@ -8,29 +8,24 @@ A small FastAPI service that trains and serves a scikit-learn linear regression 
 
 ## Setup
 
-From this directory, create and activate a virtual environment, then install the project and development dependencies:
+```### If you get error when activating virtual environment us ethe below command to bypass policy issue
+```### Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
-## Train and Run Without venv 
-
-py -3.14 -m app.training
-py -3.14 -m uvicorn app.main:app --reload
-
-## -----------------------
+From this directory, create a virtual environment with Python 3.12 (the minimum supported version), then install the project and development dependencies:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-### If the above command does not work try this first  
-### Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-### .\.venv\Scripts\Activate.ps1
+py -3.12 -m venv .venv312
+.\.venv312\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 ```
+
+For a newer Python version, replace `3.12` and `.venv312` with that version (for example, `3.14` and `.venv314`). Use a separate virtual environment for each Python version; do not reuse one created by another interpreter.
 
 ## Train and run
 
 ```powershell
 python -m app.training
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 The training command evaluates a deterministic 80/20 holdout split and writes `modeldata/model.joblib`. The API does not train on startup. If the artifact is absent, `/health` remains available and prediction/model-information endpoints return HTTP 503.
@@ -80,7 +75,7 @@ The dataset endpoint returns `{"houses": [...], "count": n}` with the source CSV
 ## Tests
 
 ```powershell
-pytest -v
+python -m pytest -v
 ```
 
 The tests use all rows in `modeldata/test_data_for_prediction.csv` for single and batch endpoint coverage.
