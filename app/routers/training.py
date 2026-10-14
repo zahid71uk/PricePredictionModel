@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import secrets
 from http import HTTPStatus
 
@@ -10,6 +11,7 @@ from app.schemas import DatasetTrainingResponse, MetricsResponse
 from app.training_service import promote_dataset
 
 router = APIRouter(prefix="/api/v1/dataset", tags=["dataset training"])
+logger = logging.getLogger(__name__)
 
 
 def _authorize_upload(request: Request, supplied_token: str | None) -> None:
@@ -30,6 +32,7 @@ def _authorize_upload(request: Request, supplied_token: str | None) -> None:
 async def _invalidate_market_analysis_cache(request: Request) -> bool:
     token = request.app.state.market_analysis_cache_invalidation_token
     if not token:
+        logger.warning("Market Analysis cache invalidation is not configured")
         return False
 
     url = f"{request.app.state.market_analysis_api_url}/api/v1/market-analysis/internal/dataset-cache"
@@ -41,9 +44,24 @@ async def _invalidate_market_analysis_cache(request: Request) -> bool:
                 if response.status_code == status.HTTP_204_NO_CONTENT:
                     return True
                 if response.status_code < status.HTTP_500_INTERNAL_SERVER_ERROR:
+                    logger.warning(
+                        "Market Analysis cache invalidation attempt %d returned HTTP %d",
+                        attempt + 1,
+                        response.status_code,
+                    )
                     break
-            except httpx.HTTPError:
-                pass
+            except httpx.HTTPError as error:
+                logger.warning(
+                    "Market Analysis cache invalidation attempt %d failed (%s)",
+                    attempt + 1,
+                    type(error).__name__,
+                )
+            else:
+                logger.warning(
+                    "Market Analysis cache invalidation attempt %d returned HTTP %d",
+                    attempt + 1,
+                    response.status_code,
+                )
             if attempt < 2:
                 await asyncio.sleep(0.2 * (attempt + 1))
     return False
@@ -88,12 +106,24 @@ async def upload_dataset(
     try:
         metrics, dataset_count = await asyncio.to_thread(promote_dataset, upload, request.app)
     except (ValueError, UnicodeDecodeError) as error:
+        logger.warning("Dataset upload rejected during training validation")
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             detail=str(error),
         ) from error
+    except Exception as error:
+        logger.exception("Dataset training or promotion failed")
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail="The dataset could not be trained and promoted.",
+        ) from error
 
     cache_refreshed = await _invalidate_market_analysis_cache(request)
+    logger.info(
+        "Dataset and model promoted: rows=%d market_cache_refreshed=%s",
+        dataset_count,
+        cache_refreshed,
+    )
     return DatasetTrainingResponse(
         dataset_count=dataset_count,
         metrics=MetricsResponse(**metrics),

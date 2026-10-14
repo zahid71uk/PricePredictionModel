@@ -21,6 +21,12 @@ from app.model_service import ModelNotFoundError, ModelService
 from app.routers import dataset, health, model_info, prediction, training
 from app.schemas import BatchPredictionRequest, HouseFeatures
 
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=log_level,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logging.getLogger().setLevel(log_level)
 logger = logging.getLogger(__name__)
 
 

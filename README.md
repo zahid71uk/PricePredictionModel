@@ -33,6 +33,10 @@ python -m uvicorn app.main:app --reload
 
 The training command evaluates a deterministic 80/20 holdout split and writes `modeldata/model.joblib`. The API does not train on startup. If the artifact is absent, `/health` remains available and prediction/model-information endpoints return HTTP 503.
 
+## Logging
+
+Application logs are written to the terminal (stdout/stderr), not to project log files. `LOG_LEVEL` defaults to `INFO`; set it to `DEBUG`, `WARNING`, or `ERROR` to change verbosity. For a Docker run, use `docker logs -f price-prediction`.
+
 ## Dataset upload
 
 `POST /api/v1/dataset/upload` accepts a CSV with `id`, the seven model features, and `price`. It validates and trains a candidate before promoting the active CSV and model. Upload is disabled by default; enabling it requires an upload token. The legacy `python -m app.training` command remains available for manual training.

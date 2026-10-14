@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import datetime, timezone
 
 import joblib
@@ -80,7 +81,10 @@ def train_model(
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    logging.basicConfig(
+        level=os.getenv("LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
     metrics = train_model()
     print("Model training complete")
     for metric, value in metrics.items():
