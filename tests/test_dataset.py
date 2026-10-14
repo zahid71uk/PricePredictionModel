@@ -17,6 +17,14 @@ def test_dataset_endpoint_returns_typed_rows(client):
     assert first_house["square_footage"] == 1250
 
 
+def test_dataset_endpoint_returns_no_rows_when_model_is_missing(tmp_path):
+    with TestClient(create_app(model_path=tmp_path / "missing.joblib")) as client:
+        response = client.get("/api/v1/dataset/houses")
+
+    assert response.status_code == 200
+    assert response.json() == {"houses": [], "count": 0}
+
+
 def test_dataset_endpoint_rejects_missing_columns(tmp_path):
     invalid_dataset = tmp_path / "invalid.csv"
     pd.DataFrame([{"id": 1, "price": 100_000}]).to_csv(invalid_dataset, index=False)

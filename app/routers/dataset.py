@@ -13,6 +13,9 @@ router = APIRouter(tags=["dataset"])
 
 @router.get("/api/v1/dataset/houses", response_model=DatasetResponse)
 def get_dataset(request: Request) -> DatasetResponse:
+    if getattr(request.app.state, "model_service", None) is None:
+        return DatasetResponse(houses=[], count=0)
+
     data_path = request.app.state.dataset_path
     try:
         with request.app.state.dataset_lock:

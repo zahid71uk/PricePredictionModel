@@ -85,7 +85,7 @@ Example single prediction:
 
 Batch requests use `{"houses": [{...}, {...}]}` and return an ordered `predictions` list with its `count`.
 
-The dataset endpoint returns `{"houses": [...], "count": n}` with the source CSV's `id`, seven model features, and `price`. It does not require the trained model artifact. Invalid, missing, or empty source data returns HTTP 503.
+The dataset endpoint returns `{"houses": [...], "count": n}` with the source CSV's `id`, seven model features, and `price` when a model is active. If no model is loaded, it returns an empty dataset so downstream analysis does not display stale source rows. Invalid, missing, or empty source data returns HTTP 503 when a model is active.
 
 ## Tests
 
